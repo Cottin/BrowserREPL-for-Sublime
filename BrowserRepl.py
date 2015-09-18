@@ -1,4 +1,5 @@
 import sublime
+import traceback
 from sublime import Window
 from sublime_plugin import TextCommand
 from sublime_plugin import EventListener
@@ -14,6 +15,24 @@ from .Http.HttpServer import HttpServer
 from .Http.AbstractOnRequest import AbstractOnRequest
 from .Http.Request import Request
 from .Http.Response import Response
+
+def show_status(status=''):
+        """
+        Shows a status message.
+        """
+        sublime.status_message('BrowserREPL - {}'.format(status))
+
+def show_error(e=None, hint='', message=''):
+    """
+    Shows a sublime error dialog.
+    """
+    if hint:
+        hint = ' - ' + hint
+
+    if e:
+        sublime.status_message('BrowserREPL{}: {}, {}, {}'.format(hint, message, str(e), traceback.format_exc()))
+    else:
+        sublime.status_message('BrowserREPL{}: {}'.format(hint, message))
 
 
 server = None
@@ -32,7 +51,7 @@ def plugin_loaded():
     BrowserReplGlobals.http_status_server_thread = HttpStatusServerThread(settings)
     BrowserReplGlobals.http_status_server_thread.start()
 
-    # Utils.replace_connected_with_disconnected_prefix()
+    # replace_connected_with_disconnected_prefix()
 
 
 def plugin_unloaded():
@@ -64,7 +83,7 @@ class HttpStatusServerThread(Thread):
         try:
             self._server.start()
         except OSError as e:
-            Utils.show_error(e, 'HttpStatusServerThread')
+            show_error(e, 'HttpStatusServerThread')
             raise e
 
     def stop(self):
@@ -90,7 +109,7 @@ class OnRequest(AbstractOnRequest):
             sleep(0.1)
 
         port = web_socket_server_thread.get_server().get_port()
-        Utils.show_status('Connection opened')
+        show_status('Connection opened')
 
         print('return Resonse')
         return Response(json.dumps({"WebSocketPort": port, "ProtocolVersion": 1}),
@@ -158,14 +177,14 @@ class OnConnect(AbstractOnMessage):
             # OnSelectionModifiedListener.bind_view(current_view, self._web_socket_server)
             # self._web_socket_server.on_message(OnMessage(self._settings, current_view))
             # current_view.window().focus_view(current_view)
-            # Utils.set_syntax_by_host(request['url'], current_view)
+            # set_syntax_by_host(request['url'], current_view)
 
             global server
             server = self._web_socket_server
 
             self._web_socket_server.send_message(response)
         except ValueError as e:
-            Utils.show_error(e, 'Invalid JSON')
+            show_error(e, 'Invalid JSON')
 
 # TODO: maybe we don't really need this one
 class OnMessage(AbstractOnMessage):
@@ -180,7 +199,7 @@ class OnMessage(AbstractOnMessage):
         #     # self._current_view.run_command('replace_content', request)
         #     # self._current_view.window().focus_view(self._current_view)
         # except ValueError as e:
-        #     Utils.show_error(e, 'Invalid JSON')
+        #     show_error(e, 'Invalid JSON')
 
 
 class OnClose(AbstractOnClose):
@@ -191,15 +210,15 @@ class OnClose(AbstractOnClose):
     def on_close(self):
         # view_id = OnSelectionModifiedListener.find_view_id_by_web_socket_server_id(self._web_socket_server)
         # if view_id is not None:
-        #     view = Utils.find_view_by_id(view_id)
+        #     view = find_view_by_id(view_id)
         #     if view is not None:
-        #         Utils.mark_view_as(view, 'disconnected')
+        #         mark_view_as(view, 'disconnected')
 
         # if self._close_view_on_disconnect:
-        #     Utils.close_view_by_id(view_id)
+        #     close_view_by_id(view_id)
 
         # OnSelectionModifiedListener.unbind_view_by_web_socket_server_id(self._web_socket_server)
-        Utils.show_status('Connection closed')
+        show_status('Connection closed')
 
 
 
